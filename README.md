@@ -17,7 +17,7 @@
 4. Open http://127.0.0.1:3000 for Metabase (`admin@example.com` /
    `metasample123`), and http://127.0.0.1:7681 for Claude Code.
 
-Claude Code runs in tmux: `Ctrl-b c` opens another Claude session, and you switch
+Claude Code runs in `tmux`: `Ctrl-b c` opens another Claude session, and you switch
 by clicking the status bar or with `Ctrl-b 1`…`9`. Sessions survive a page refresh.
 
 Stop with `docker compose down` (add `-v` to wipe Metabase and the workspace).
