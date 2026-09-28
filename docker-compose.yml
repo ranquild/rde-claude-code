@@ -1,0 +1,99 @@
+services:
+  metabase-appdb:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: metabase
+      POSTGRES_PASSWORD: metabase
+      POSTGRES_DB: metabase
+    volumes:
+      - metabase-appdb-data:/var/lib/postgresql/data
+    networks: [metabase-appdb]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metabase -d metabase"]
+      interval: 5s
+      retries: 20
+
+  metabase:
+    image: metabase/metabase-enterprise:latest
+    restart: unless-stopped
+    depends_on:
+      metabase-appdb:
+        condition: service_healthy
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: metabase-appdb
+      MB_DB_PORT: 5432
+      MB_DB_DBNAME: metabase
+      MB_DB_USER: metabase
+      MB_DB_PASS: metabase
+      MB_CONFIG_FILE_PATH: /config/config.yml
+      MB_LOAD_SAMPLE_CONTENT: "false"
+      MB_PREMIUM_EMBEDDING_TOKEN: ${MB_PREMIUM_EMBEDDING_TOKEN:?set MB_PREMIUM_EMBEDDING_TOKEN in .env}
+      MB_ADMIN_EMAIL: ${MB_ADMIN_EMAIL}
+      MB_ADMIN_PASSWORD: ${MB_ADMIN_PASSWORD}
+      MB_API_KEY: ${MB_API_KEY:?set MB_API_KEY in .env}
+    volumes:
+      - ./metabase/config.yml:/config/config.yml:ro
+    ports:
+      - "127.0.0.1:${MB_JETTY_PORT}:3000"
+    networks: [metabase-appdb, metabase, metabase-internet]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/health || exit 1"]
+      interval: 5s
+      retries: 60
+      start_period: 60s
+
+  claude-code:
+    build:
+      context: ./claude-code
+    restart: unless-stopped
+    init: true
+    tty: true
+    stdin_open: true
+    depends_on:
+      metabase:
+        condition: service_healthy
+      claude-code-proxy:
+        condition: service_started
+    environment:
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:?set CLAUDE_CODE_OAUTH_TOKEN in .env}
+      MB_API_KEY: ${MB_API_KEY:?set MB_API_KEY in .env}
+      HTTPS_PROXY: http://claude-code-proxy:8888
+      HTTP_PROXY: http://claude-code-proxy:8888
+      NO_PROXY: metabase,localhost,127.0.0.1
+    volumes:
+      - workspace:/workspace
+    networks: [metabase, claude-code-egress, claude-code-ui]
+
+  claude-code-proxy:
+    build:
+      context: ./claude-code-proxy
+    restart: unless-stopped
+    networks: [claude-code-egress, claude-code-internet]
+
+  claude-code-ui:
+    image: alpine/socat:latest
+    restart: unless-stopped
+    command: TCP-LISTEN:7681,fork,reuseaddr TCP:claude-code:7681
+    depends_on: [claude-code]
+    ports:
+      - "127.0.0.1:${CLAUDE_CODE_PORT}:7681"
+    networks: [claude-code-ui, claude-code-ui-published]
+
+networks:
+  metabase-appdb:
+    internal: true
+  metabase:
+    internal: true
+  claude-code-egress:
+    internal: true
+  claude-code-ui:
+    internal: true
+  claude-code-internet: {}
+  metabase-internet: {}
+  claude-code-ui-published: {}
+
+volumes:
+  metabase-appdb-data:
+  workspace:
