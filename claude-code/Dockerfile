@@ -1,7 +1,7 @@
 FROM node:22-bookworm-slim
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl git jq \
+ && apt-get install -y --no-install-recommends ca-certificates curl git jq tmux \
  && rm -rf /var/lib/apt/lists/*
 
 # Static ttyd binary from the official multi-arch image.
@@ -20,6 +20,9 @@ RUN npx -y skills add metabase/agent-skills --skill metabase-cli --agent claude-
 
 RUN echo '{"hasCompletedOnboarding": true}' > /home/node/.claude.json
 
+# Mouse mode, so the browser terminal can scroll back through tmux history.
+RUN echo 'set -g mouse on' > /home/node/.tmux.conf
+
 ENV MB_URL=http://metabase:3000 \
     MB_CLI_DISABLE_KEYRING=1 \
     DISABLE_AUTOUPDATER=1 \
@@ -27,4 +30,5 @@ ENV MB_URL=http://metabase:3000 \
 
 EXPOSE 7681
 ENTRYPOINT ["/usr/local/bin/init.sh"]
-CMD ["ttyd", "--writable", "--port", "7681", "bash", "-c", "claude; exec bash"]
+# tmux keeps the session alive across browser refreshes; -A reattaches to it.
+CMD ["ttyd", "--writable", "--port", "7681", "tmux", "new-session", "-A", "-s", "claude", "claude; exec bash"]

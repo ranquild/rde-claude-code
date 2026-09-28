@@ -5,8 +5,7 @@
    claude setup-token
    ```
 2. Copy the env file, paste the token into `CLAUDE_CODE_OAUTH_TOKEN`, and a
-   Metabase Pro/Enterprise token into `MB_PREMIUM_EMBEDDING_TOKEN` (needed to
-   create the admin and API key from `metabase/config.yml`):
+   Metabase Pro/Enterprise token into `MB_PREMIUM_EMBEDDING_TOKEN`:
    ```sh
    cp .env.example .env
    ```

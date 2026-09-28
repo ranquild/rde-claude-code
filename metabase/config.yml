@@ -5,6 +5,7 @@ config:
   settings:
     check-for-updates: false
     anon-tracking-enabled: false
+    load-sample-content: true
   users:
     - first_name: Admin
       last_name: User

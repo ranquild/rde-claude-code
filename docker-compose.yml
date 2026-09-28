@@ -8,7 +8,6 @@ services:
       POSTGRES_DB: metabase
     volumes:
       - metabase-appdb-data:/var/lib/postgresql/data
-    networks: [metabase-appdb]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U metabase -d metabase"]
       interval: 5s
@@ -28,7 +27,6 @@ services:
       MB_DB_USER: metabase
       MB_DB_PASS: metabase
       MB_CONFIG_FILE_PATH: /config/config.yml
-      MB_LOAD_SAMPLE_CONTENT: "false"
       MB_PREMIUM_EMBEDDING_TOKEN: ${MB_PREMIUM_EMBEDDING_TOKEN:?set MB_PREMIUM_EMBEDDING_TOKEN in .env}
       MB_ADMIN_EMAIL: ${MB_ADMIN_EMAIL}
       MB_ADMIN_PASSWORD: ${MB_ADMIN_PASSWORD}
@@ -37,7 +35,7 @@ services:
       - ./metabase/config.yml:/config/config.yml:ro
     ports:
       - "127.0.0.1:${MB_JETTY_PORT}:3000"
-    networks: [metabase-appdb, metabase, metabase-internet]
+    networks: [default, claude-code]
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/health || exit 1"]
       interval: 5s
@@ -64,13 +62,13 @@ services:
       NO_PROXY: metabase,localhost,127.0.0.1
     volumes:
       - workspace:/workspace
-    networks: [metabase, claude-code-egress, claude-code-ui]
+    networks: [claude-code]
 
   claude-code-proxy:
     build:
       context: ./claude-code-proxy
     restart: unless-stopped
-    networks: [claude-code-egress, claude-code-internet]
+    networks: [default, claude-code]
 
   claude-code-ui:
     image: alpine/socat:latest
@@ -79,20 +77,11 @@ services:
     depends_on: [claude-code]
     ports:
       - "127.0.0.1:${CLAUDE_CODE_PORT}:7681"
-    networks: [claude-code-ui, claude-code-ui-published]
+    networks: [default, claude-code]
 
 networks:
-  metabase-appdb:
+  claude-code:
     internal: true
-  metabase:
-    internal: true
-  claude-code-egress:
-    internal: true
-  claude-code-ui:
-    internal: true
-  claude-code-internet: {}
-  metabase-internet: {}
-  claude-code-ui-published: {}
 
 volumes:
   metabase-appdb-data:

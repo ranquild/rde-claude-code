@@ -4,16 +4,8 @@ set -euo pipefail
 
 : "${MB_URL:?}" "${MB_API_KEY:?}"
 
-echo "Waiting for Metabase at $MB_URL..."
-until curl -fsS --noproxy '*' "$MB_URL/api/health" >/dev/null 2>&1; do sleep 2; done
+# Pipe the key: with a TTY attached, mb would otherwise prompt interactively.
+printf '%s' "$MB_API_KEY" | mb auth login --url "$MB_URL" >/dev/null
+echo "mb CLI logged in to $MB_URL."
 
-# The key exists once Metabase has loaded config.yml; retry until it does.
-for attempt in $(seq 30); do
-  if out=$(mb auth login --url "$MB_URL" 2>&1); then
-    echo "mb CLI logged in to $MB_URL."
-    exec "$@"
-  fi
-  sleep 2
-done
-echo "mb auth login failed: $out" >&2
-exit 1
+exec "$@"
