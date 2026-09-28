@@ -1,5 +1,7 @@
 # Metabase + Claude Code
 
+Setup:
+
 1. Get a Claude Code token:
    ```sh
    claude setup-token
