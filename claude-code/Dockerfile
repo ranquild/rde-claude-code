@@ -22,7 +22,9 @@ RUN echo '{"hasCompletedOnboarding": true, "projects": {"/workspace": {"hasTrust
 
 COPY --chown=node:node tmux.conf /home/node/.tmux.conf
 
-ENV MB_URL=http://metabase:3000 \
+# UTF-8 locale; without it tmux draws non-ASCII characters as "_".
+ENV LANG=C.UTF-8 \
+    MB_URL=http://metabase:3000 \
     MB_CLI_DISABLE_KEYRING=1 \
     DISABLE_AUTOUPDATER=1 \
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
